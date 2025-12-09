@@ -122,16 +122,16 @@ func TestUnmarshalErrorBuildGradle(t *testing.T) {
 
 func TestErrorGetVersionGradle(t *testing.T) {
 	noContentErr := errors.New("can't get content")
-	cp := provider.MockContentProvider{"", noContentErr}
+	cp := provider.MockContentProvider{Err: noContentErr}
 	bgf := &Fetcher{}
 	//test error get contents
 	_, err := bgf.GetVersion(&cp, settings.AtcSettings{Path: "gradle"})
-	if err != noContentErr {
+	if !errors.Is(err, noContentErr) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 	//test error get contents when use DefaultPath
 	_, err = bgf.GetVersionUsingDefaultPath(&cp)
-	if err != noContentErr {
+	if !errors.Is(err, noContentErr) {
 		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
 	}
 }

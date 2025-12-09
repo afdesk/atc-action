@@ -3,9 +3,7 @@ module github.com/smartforce-io/atc
 go 1.25
 
 require (
-	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/go-github/v39 v39.2.0
-	github.com/gorilla/mux v1.8.1
 	golang.org/x/oauth2 v0.27.0
 	gopkg.in/yaml.v2 v2.4.0
 )
