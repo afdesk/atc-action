@@ -8,7 +8,7 @@ import (
 
 func main() {
 	log.Println("Automated Tag Creator")
-	err := push.CIActionPush()
+	err := push.AddTag()
 	if err != nil {
 		log.Fatalf("error creating tag %v", err)
 	}

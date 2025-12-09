@@ -64,7 +64,7 @@ func renderTagNameTemplate(templateString, version string) (string, error) {
 	return buf.String(), nil
 }
 
-func CIActionPush() error {
+func AddTag() error {
 	githubToken := os.Getenv("GITHUB_TOKEN")
 	fullname := os.Getenv("GITHUB_REPOSITORY")
 	commitSHA := os.Getenv("COMMIT_SHA")

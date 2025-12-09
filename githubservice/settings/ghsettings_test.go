@@ -117,7 +117,7 @@ branch: main`, nil},
 
 	for _, test := range tests {
 		settings := &AtcSettings{}
-		if err := unmarshal([]byte(test.atcYamlFile), settings); err == test.unexpectedError {
+		if err := unmarshal([]byte(test.atcYamlFile), settings); errors.Is(err, test.unexpectedError) {
 			t.Errorf("err unmarshal file:%s\n: %v", test.atcYamlFile, err)
 		}
 	}
