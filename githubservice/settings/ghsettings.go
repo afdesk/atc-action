@@ -13,7 +13,6 @@ import (
 const (
 	BehaviorBefore = "before"
 	BehaviorAfter  = "after"
-	pathPrefix     = "/"
 )
 
 var unmarshal = func(content []byte, atcSettingsPtr *AtcSettings) error {
