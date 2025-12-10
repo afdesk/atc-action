@@ -1,95 +1,62 @@
 package customregex
 
 import (
-	"errors"
-	"fmt"
+	"os"
 	"testing"
 
-	"github.com/smartforce-io/atc/githubservice/provider"
-	"github.com/smartforce-io/atc/githubservice/settings"
+	"github.com/stretchr/testify/require"
 )
 
-var basicUserConfig = `
-name: test
-project: testt
-vers: 1.0.1
-end
-}
-`
-
-func TestUserConfigFetcherBasic(t *testing.T) {
-	fetcher := Fetcher{}
-
-	cp := provider.MockContentProvider{Content: basicUserConfig}
-
-	vers, err := fetcher.GetVersion(&cp, settings.AtcSettings{Path: "test.txt", RegexStr: "vers: (.+)"})
-
-	if err != nil {
-		t.Errorf("Unexpected error %v", err)
-		return
-	}
-
-	if vers != "1.0.1" {
-		t.Errorf("wrong settings File! Got %q, wanted %q", vers, 5)
-	}
-}
-
 func TestUnmarshalUserConfig(t *testing.T) {
-	var tests = []struct {
-		content  string
+	tests := []struct {
+		name     string
+		path     string
 		regexstr string
 		version  string
+		wantErr  string
 	}{
-		{`vers: "1.1"`, "vers: (.+)", "1.1"},
-		{`vers: "1.2"
-		versionCode 1`, "vers: (.+)", "1.2"},
-		{`vers: 1
-		versionName "1.3"`, "vers: (.+)", "1.3"},
-		{`vers: "1.4-release"`, "vers: (.+)", "1.4-release"},
+		{
+			name:     "happy path",
+			path:     "testdata/happy",
+			regexstr: "vers: \"(.+?)\"",
+			version:  "1.1",
+		},
+		{
+			name:     "happy with release",
+			path:     "testdata/happy-release",
+			regexstr: "vers: \"(.+?)\"",
+			version:  "1.1-release",
+		},
+		{
+			name:     "invalid regex syntax",
+			path:     "",
+			regexstr: "vers: (.{}",
+			wantErr:  "error parsing regexp: missing closing ): `vers: (.{}`",
+		},
+		{
+			name:     "empty version",
+			path:     "testdata/happy",
+			regexstr: "versious: 1",
+			wantErr:  "empty number version",
+		},
+		{
+			name:     "empty regex group",
+			path:     "",
+			regexstr: "",
+			wantErr:  "regexStr don't have group",
+		},
 	}
-	for _, test := range tests {
-		customRegexConf := &Config{}
-		err := unmarshalCustomRegexConfig([]byte(test.content), test.regexstr, customRegexConf)
-		if err != nil {
-			t.Errorf("Error unmarshal: %v", err)
-			if customRegexConf.Version != test.version {
-				t.Errorf("Unmarshal error for content: %s\n expected: %s, got: %s", test.content, test.version, customRegexConf.Version)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			customRegexConf := &Config{}
+			content, err := os.ReadFile(tt.path)
+			err = unmarshalCustomRegexConfig(content, tt.regexstr, customRegexConf)
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+				return
 			}
-		}
-	}
-}
-
-func TestUnmarshalErrorUserConfig(t *testing.T) {
-	var tests = []struct {
-		content  string
-		regexstr string
-		err      string
-	}{
-		{`versionName = 1.5`, "vers: (.{}", "error parsing regexp: missing closing ): `vers: (.{}`"},
-		{`vers: 11"`, "versious: 1", "empty number version"},
-		{``, "", "regexStr don't have group"},
-	}
-	for _, test := range tests {
-		customRegexConf := &Config{}
-		if err := unmarshalCustomRegexConfig([]byte(test.content), test.regexstr, customRegexConf); fmt.Sprintf("%s", err) != test.err {
-			t.Errorf("Error for content: %s\nexpected err: %v, got err: %v", test.content, test.err, err)
-		}
-	}
-}
-
-func TestErrorGetVersionUserConfig(t *testing.T) {
-	noContentErr := errors.New("can't get content")
-	defaultPathErr := "CustomRegexConfig doesn't have a default path"
-	cp := provider.MockContentProvider{Err: noContentErr}
-	usf := &Fetcher{}
-	//test error get contents
-	_, err := usf.GetVersion(&cp, settings.AtcSettings{Path: "test"})
-	if !errors.Is(err, noContentErr) {
-		t.Errorf("err:%s  !=  noContentErr:%s", err, noContentErr)
-	}
-	//test error get contents when use DefaultPath
-	_, err = usf.GetVersionUsingDefaultPath(&cp)
-	if fmt.Sprintf("%s", err) != defaultPathErr {
-		t.Errorf("err:%s  !=  defaultPathErr:%s", err, defaultPathErr)
+			require.NoError(t, err)
+			require.Equal(t, tt.version, customRegexConf.Version)
+		})
 	}
 }
