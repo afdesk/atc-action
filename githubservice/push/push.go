@@ -98,14 +98,14 @@ func AddTag() error {
 		return nil
 	}
 
-	ghOldContentProviderPtr := &provider.GhContentProvider{
+	ghOldContentProviderPtr := provider.ContentProvider{
 		Owner:    owner,
 		Repo:     repo,
 		Ref:      parents[0].GetSHA(),
 		Ctx:      ctx,
 		GhClient: client,
 	}
-	ghNewContentProviderPtr := &provider.GhContentProvider{
+	ghNewContentProviderPtr := provider.ContentProvider{
 		Owner:    owner,
 		Repo:     repo,
 		Ref:      commitSHA,
