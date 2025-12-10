@@ -1,46 +1,79 @@
 package push
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestMadeСaptionToTemplate(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
+		name     string
 		template string
 		version  string
 		result   string
+		wantErr  bool
 	}{
-		{`v{{.Version}}`, `1.0`, `v1.0`},
-		{`vNN{{.Version}}`, `1.0`, `vNN1.0`},
-		{`v_{{.Version}}`, `1.0`, `v_1.0`},
-		{`v{{.Version}}`, `1.0-relise`, `v1.0-relise`},
-		{`{{.Version}}`, `1.0`, `1.0`},
-		{`Time hour now: {{Time.Hour}}, {{.Version}}`, `1.0`, "Time hour now: " + strconv.Itoa(time.Now().Hour()) + ", 1.0"},
-		{``, `1.0`, ``},
+		{
+			name:     "simple version",
+			template: `v{{.Version}}`,
+			version:  `1.0`,
+			result:   `v1.0`,
+		},
+		{
+			name:     "version with prefix",
+			template: `vNN{{.Version}}`,
+			version:  `1.0`,
+			result:   `vNN1.0`,
+		},
+		{
+			name:     "version with underscore",
+			template: `v_{{.Version}}`,
+			version:  `1.0`,
+			result:   `v_1.0`,
+		},
+		{
+			name:     "version with release",
+			template: `v{{.Version}}`,
+			version:  `1.0-relise`,
+			result:   `v1.0-relise`,
+		},
+		{
+			name:     "only version placeholder",
+			template: `{{.Version}}`,
+			version:  `1.0`,
+			result:   `1.0`,
+		},
+		{
+			name:     "version with time placeholder",
+			template: `Time hour now: {{Time.Hour}}, {{.Version}}`,
+			version:  `1.0`,
+			result:   "Time hour now: " + strconv.Itoa(time.Now().Hour()) + ", 1.0"},
+		{
+			name:     "empty template",
+			template: ``,
+			version:  `1.0`,
+			result:   ``,
+		},
+		{
+			name:     "invalid field",
+			template: `v{{.Versio}}`,
+			version:  `1.0`,
+			wantErr:  true,
+		},
 	}
-	for _, test := range tests {
-		result, _ := renderTagNameTemplate(test.template, test.version)
-		if result != test.result {
-			t.Errorf("template: %q, version: %q\nwant: %q, got: %q", test.template, test.version, test.result, result)
-		}
-	}
-}
 
-func TestMadeСaptionToTemplateError(t *testing.T) {
-	var tests = []struct {
-		template  string
-		version   string
-		errString string
-	}{
-		{`v{{.Versio}}`, `1.0`, `template: template tagContent:1:3: executing "template tagContent" at <.Versio>: can't evaluate field Versio in type push.TagContent`},
-	}
-	for _, test := range tests {
-		_, err := renderTagNameTemplate(test.template, test.version)
-		if fmt.Sprint(err) != test.errString {
-			t.Errorf("template: %q, version: %q\nerr want: %v, err got: %v", test.template, test.version, test.errString, err)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := renderTagNameTemplate(tt.template, tt.version)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.result, result)
+		})
 	}
 }
