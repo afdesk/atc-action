@@ -1,23 +1,15 @@
 package settings
 
 import (
-	"errors"
-	"log"
 	"strings"
 
-	"github.com/smartforce-io/atc/githubservice/provider"
-
-	"gopkg.in/yaml.v2"
+	"golang.org/x/xerrors"
 )
 
 const (
 	BehaviorBefore = "before"
 	BehaviorAfter  = "after"
 )
-
-var unmarshal = func(content []byte, atcSettingsPtr *AtcSettings) error {
-	return yaml.Unmarshal([]byte(content), atcSettingsPtr)
-}
 
 type AtcSettings struct {
 	Path     string `yaml:"path"`
@@ -28,21 +20,13 @@ type AtcSettings struct {
 }
 
 func validateSettings(settings *AtcSettings) error {
-	//check settins to "" and use default value:
-	if settings.Behavior == "" {
-		settings.Behavior = BehaviorAfter
-	}
-	if settings.Template == "" {
-		settings.Template = "v{{.Version}}"
-	}
-
 	//check Behavior:
 	if strings.ToLower(settings.Behavior) != BehaviorAfter && strings.ToLower(settings.Behavior) != BehaviorBefore {
-		return errors.New(`error config file .atc.yaml: behavior doesn't contain "before" or "after"`)
+		return xerrors.Errorf("invalid behavior")
 	}
 	//check Template:
 	if !strings.Contains(settings.Template, `{{.Version}}`) {
-		return errors.New(`error config file .atc.yaml: template doesn't contain "{{.Version}}"`)
+		return xerrors.Errorf("template does not contain {{.Version}}")
 	}
 	//check Path:
 	pathPrefix := "/"
@@ -51,29 +35,10 @@ func validateSettings(settings *AtcSettings) error {
 		return nil
 	}
 	if strings.HasPrefix(settings.Path, pathPrefix) {
-		return errors.New(`error config file .atc.yaml; path has prefix "/"`)
+		return xerrors.Errorf("invalid path prefix")
 	}
 	if strings.Contains(settings.Path, "//") {
-		return errors.New(`error config file .atc.yaml; path has "//"`)
+		return xerrors.Errorf("invalid path format")
 	}
 	return nil
-}
-
-func GetAtcSetting(ghcp provider.ContentProvider) (*AtcSettings, error) {
-	settings := &AtcSettings{}
-
-	content, err := ghcp.GetContents(".atc.yaml")
-	if err != nil {
-		log.Printf("get .atc.yaml error: %s. Used default settings", err)
-		return &AtcSettings{Behavior: "after", Template: "v{{.Version}}"}, nil
-	}
-
-	if err := unmarshal([]byte(content), settings); err != nil {
-		return nil, errors.New(`error config file .atc.yaml; can't unmarshal file`)
-	}
-
-	if err := validateSettings(settings); err != nil {
-		return nil, err
-	}
-	return settings, nil
 }

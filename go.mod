@@ -6,6 +6,7 @@ require (
 	github.com/google/go-github/v39 v39.2.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.27.0
+	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 	gopkg.in/yaml.v2 v2.4.0
 )
 
