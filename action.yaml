@@ -1,6 +1,6 @@
 name: 'Automated Tag Creator '
 description: 'Track version changes in local files for automatic tag creation'
-author: 'smartforce-io'
+author: 'afdesk'
 
 inputs:
   path:
