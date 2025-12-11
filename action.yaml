@@ -3,7 +3,7 @@ description: 'Track version changes in local files for automatic tag creation'
 author: 'smartforce-io'
 
 inputs:
-  type:
+  path:
     description: 'File to track version of the app'
     required: true
   secrets:
@@ -57,7 +57,7 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.secrets }}
-        FILE_TYPE: ${{ inputs.type }}
+        FILE_PATH: ${{ inputs.path }}
         COMMIT_SHA: ${{ github.sha }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         BEHAVIOR: ${{ inputs.behavior }}

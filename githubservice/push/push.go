@@ -70,7 +70,7 @@ func AddTag() error {
 	commitSHA := os.Getenv("COMMIT_SHA")
 
 	atcs := &settings.AtcSettings{
-		Path:     os.Getenv("FILE_TYPE"),
+		Path:     os.Getenv("FILE_PATH"),
 		Behavior: os.Getenv("BEHAVIOR"),
 		Template: os.Getenv("TEMPLATE"),
 		RegexStr: os.Getenv("REGEX"),
