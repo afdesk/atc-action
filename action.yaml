@@ -36,13 +36,14 @@ runs:
           exit 1
         fi
 
-    - name: Check type file
+    - name: Check file path
       shell: bash
       run: |
-        if [[ ! -f "${{ inputs.type }}" ]]; then
-          echo "::error::Config file not found: ${{ inputs.type }}"
+        if [[ ! -f "${{ inputs.path }}" ]]; then
+          echo "::error::File with version not found: ${{ inputs.path }}"
+          exit 1
         fi
-        echo "Config file found: ${{ inputs.type }}"
+        echo "File with version found: ${{ inputs.path }}"
 
     - name: Set up Go
       uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
