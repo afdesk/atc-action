@@ -1,9 +1,0 @@
-version: "3"
-services:
-  atc:
-    build:
-      context: .
-    ports:
-    - "8080:8080"
-    volumes:
-        - <path to Github .pem file>/github.pem:/assets/github.pem

@@ -8,17 +8,9 @@ import (
 	"github.com/google/go-github/v39/github"
 )
 
-type ContentProvider interface {
-	GetContents(path string) (string, error)
-}
-
-type RequestError struct {
-	StatusCode int
-}
-
 var ErrHttpStatusCode = errors.New("http status code error")
 
-type GhContentProvider struct {
+type ContentProvider struct {
 	Owner    string
 	Repo     string
 	Ref      string
@@ -26,11 +18,11 @@ type GhContentProvider struct {
 	GhClient *github.Client
 }
 
-func (ghcp *GhContentProvider) GetContents(path string) (string, error) {
+func (cp *ContentProvider) GetContents(path string) (string, error) {
 
-	fileContent, _, response, err := ghcp.GhClient.Repositories.GetContents(ghcp.Ctx,
-		ghcp.Owner, ghcp.Repo, path,
-		&github.RepositoryContentGetOptions{Ref: ghcp.Ref})
+	fileContent, _, response, err := cp.GhClient.Repositories.GetContents(cp.Ctx,
+		cp.Owner, cp.Repo, path,
+		&github.RepositoryContentGetOptions{Ref: cp.Ref})
 
 	if err != nil {
 		return "", err
@@ -39,7 +31,7 @@ func (ghcp *GhContentProvider) GetContents(path string) (string, error) {
 
 	if response.StatusCode != http.StatusOK {
 		return content, ErrHttpStatusCode
-	} else {
-		return content, nil
 	}
+
+	return content, nil
 }

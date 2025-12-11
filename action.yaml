@@ -1,9 +1,9 @@
 name: 'Automated Tag Creator '
 description: 'Track version changes in local files for automatic tag creation'
-author: 'smartforce-io'
+author: 'afdesk'
 
 inputs:
-  type:
+  path:
     description: 'File to track version of the app'
     required: true
   secrets:
@@ -36,13 +36,14 @@ runs:
           exit 1
         fi
 
-    - name: Check type file
+    - name: Check file path
       shell: bash
       run: |
-        if [[ ! -f "${{ inputs.type }}" ]]; then
-          echo "::error::Config file not found: ${{ inputs.type }}"
+        if [[ ! -f "${{ inputs.path }}" ]]; then
+          echo "::error::File with version not found: ${{ inputs.path }}"
+          exit 1
         fi
-        echo "Config file found: ${{ inputs.type }}"
+        echo "File with version found: ${{ inputs.path }}"
 
     - name: Set up Go
       uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
@@ -57,7 +58,7 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.secrets }}
-        FILE_TYPE: ${{ inputs.type }}
+        FILE_PATH: ${{ inputs.path }}
         COMMIT_SHA: ${{ github.sha }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         BEHAVIOR: ${{ inputs.behavior }}

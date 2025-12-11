@@ -1,155 +1,106 @@
 package settings
 
 import (
-	"errors"
-	"fmt"
 	"testing"
 
-	"github.com/smartforce-io/atc/githubservice/provider"
+	"github.com/stretchr/testify/require"
 )
 
-func failingAtcSettingsUnmarshal(content []byte, atcSettingsPtr *AtcSettings) error {
-	return provider.ErrUnmarshal
-}
-
-var basicConfig = `
-path: contests/pom.xml
-behavior: before
-template: v{{.Version}}
-branch: main`
-
-func TestBasicAtcSetting(t *testing.T) {
-
-	var testsConfig = []struct {
-		config   string
+func TestCheckSettingsForErrors(t *testing.T) {
+	tests := []struct {
+		name     string
 		path     string
 		behavior string
 		template string
 		branch   string
+		regexstr string
+		wantErr  string
 	}{
-		{`
-path: contents/pom.xml
-behavior: before
-template: v{{.Version}}
-branch: main`, `contents/pom.xml`, `before`, `v{{.Version}}`, `main`},
-		{`
-path: build.gradle
-behavior: after
-template: vGR{{.Version}}
-branch: test`, `build.gradle`, `after`, `vGR{{.Version}}`, `test`},
+		{
+			name:     "invalid path prefix",
+			path:     "/contents/pom.xml",
+			behavior: "before",
+			template: "v{{.Version}}",
+			branch:   "",
+			regexstr: "",
+			wantErr:  "invalid path prefix",
+		},
+		{
+			name:     "invalid path format",
+			path:     "contents//asd.txt",
+			behavior: "before",
+			template: "v{{.Version}}",
+			branch:   "",
+			regexstr: "",
+			wantErr:  "invalid path format",
+		},
+		{
+			name:     "valid path",
+			path:     "contents/asd.txt",
+			behavior: "before",
+			template: "v{{.Version}}",
+			branch:   "",
+			regexstr: "",
+		},
+		{
+			name:     "invalid behavior",
+			path:     "contents/pom.xml",
+			behavior: "bef",
+			template: "v{{.Version}}",
+			branch:   "",
+			regexstr: "",
+			wantErr:  "invalid behavior",
+		},
+		{
+			name:     "template missing version placeholder",
+			path:     "package.json",
+			behavior: "after",
+			template: "{.version}",
+			branch:   "",
+			regexstr: "",
+			wantErr:  "template does not contain {{.Version}}",
+		},
+		{
+			name:     "valid settings before",
+			path:     "contents/pom.xml",
+			behavior: "before",
+			template: "v{{.Version}}V",
+			branch:   "testbranch",
+			regexstr: "",
+		},
+		{
+			name:     "valid settings after",
+			path:     "package.json",
+			behavior: "after",
+			template: "{{.Version}}-release",
+			branch:   "main",
+			regexstr: "",
+		},
+		{
+			name:     "empty path",
+			path:     "",
+			behavior: "before",
+			template: "v{{.Version}}",
+			branch:   "",
+			regexstr: "",
+		},
 	}
 
-	cp := provider.MockContentProvider{Content: basicConfig}
-
-	_, err := GetAtcSetting(&cp)
-	if err != nil {
-		t.Errorf("Unexpected error %v", err)
-		return
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			settings := &AtcSettings{
+				Path:     tt.path,
+				Behavior: tt.behavior,
+				Template: tt.template,
+				Branch:   tt.branch,
+				RegexStr: tt.regexstr,
+			}
+			err := validateSettings(settings)
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+		})
 	}
-
-	for _, test := range testsConfig {
-		cp = provider.MockContentProvider{Content: test.config}
-		settings, _ := GetAtcSetting(&cp)
-		if settings.Path != test.path {
-			t.Errorf("wrong settings Path! Got %q, wanted %q", settings.Path, test.path)
-		}
-		if settings.Behavior != test.behavior {
-			t.Errorf("wrong settings Begavior! Got %q, wanted %q", settings.Behavior, test.behavior)
-		}
-		if settings.Template != test.template {
-			t.Errorf("wrong settings Template! Got %q, wanted %q", settings.Template, test.template)
-		}
-		if settings.Branch != test.branch {
-			t.Errorf("wrong settings Branch! Got %q, wanted %q", settings.Branch, test.branch)
-		}
-	}
-}
-
-func TestCheckSettingsForErrors(t *testing.T) {
-	var tests = []struct {
-		path             string
-		behavior         string
-		template         string
-		branch           string
-		regexstr         string
-		expectedErrorStr string
-	}{
-		{"/contents/pom.xml", "", "", "", "", `error config file .atc.yaml; path has prefix "/"`},
-		{"contents//asd.txt", "", "", "", "", `error config file .atc.yaml; path has "//"`},
-		{"contents/asd.txt", "", "", "", "", fmt.Sprint(nil)},
-		{"contents/pom.xml/", "bef", "", "", "", `error config file .atc.yaml: behavior doesn't contain "before" or "after"`},
-		{"package.json", "after", "{.version}", "", "", `error config file .atc.yaml: template doesn't contain "{{.Version}}"`},
-		{"pubspec.yaml", "before", ".vers", "", "", `error config file .atc.yaml: template doesn't contain "{{.Version}}"`},
-		{"contents/pom.xml", "before", "v{{.Version}}V", "testbranch", "", fmt.Sprint(nil)},
-	}
-
-	for _, test := range tests {
-		settings := &AtcSettings{test.path, test.behavior, test.template, test.branch, test.regexstr}
-		err := validateSettings(settings)
-		if fmt.Sprint(err) != test.expectedErrorStr {
-			t.Errorf("no takes error settings:%s\nexpected: %s, got: %s", settings, test.expectedErrorStr, err)
-		}
-	}
-}
-
-func TestUnmarshalDefault(t *testing.T) {
-	var tests = []struct {
-		atcYamlFile     string
-		unexpectedError error
-	}{
-		{`
-path: build.gradle
-behavior: before
-template: "v{{.version}}"
-branch: main`, errors.New(``)},
-		{`
-		path: build.gradle
-		behavior: before
-		template: v{{.version}}
-		branch: main`, nil},
-		{`
-path: build.gradle
-behavior: before
-template: {{.version}}
-branch: main`, nil},
-		{``, errors.New(``)},
-	}
-
-	for _, test := range tests {
-		settings := &AtcSettings{}
-		if err := unmarshal([]byte(test.atcYamlFile), settings); err == test.unexpectedError {
-			t.Errorf("err unmarshal file:%s\n: %v", test.atcYamlFile, err)
-		}
-	}
-}
-
-func TestAtcSettingGetContentsError(t *testing.T) {
-	confFilStr := `
-path: contents/pom.xml
-behavior: before
-template: v{{.version}}
-branch: main`
-	emptySettings := &AtcSettings{}
-
-	cp := provider.MockContentProvider{Content: confFilStr, Err: provider.ErrGeneral}
-	set, err := GetAtcSetting(&cp)
-
-	if set != emptySettings && err != nil {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrGeneral)
-	}
-}
-
-func TestAtcSettingUnmarshalError(t *testing.T) {
-	unmarshalcp := unmarshal
-
-	unmarshal = failingAtcSettingsUnmarshal
-
-	cp := provider.MockContentProvider{Content: basicConfig}
-	_, err := GetAtcSetting(&cp)
-
-	if fmt.Sprint(err) != `error config file .atc.yaml; can't unmarshal file` {
-		t.Errorf("Invalid error, Got %v, wanted %v", err, provider.ErrUnmarshal)
-	}
-
-	unmarshal = unmarshalcp
 }

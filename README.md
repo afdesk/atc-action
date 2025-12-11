@@ -21,7 +21,7 @@ jobs:
         uses:  uses: actions/checkout@v5
 
       - name: Create tag
-        uses: smartforce-io/atc@master
+        uses: afdesk/atc-action@master
         with:
           type: 'plugin.yaml'
           secrets: ${{ secrets.GITHUB_TOKEN }}
